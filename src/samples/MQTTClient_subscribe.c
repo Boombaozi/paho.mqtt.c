@@ -19,7 +19,7 @@
 #include <string.h>
 #include "MQTTClient.h"
 
-#define ADDRESS     "tcp://mqtt.eclipse.org:1883"
+#define ADDRESS     "tcp://127.0.0.1:1883"
 #define CLIENTID    "ExampleClientSub"
 #define TOPIC       "MQTT Examples"
 #define PAYLOAD     "Hello World!"
@@ -28,6 +28,9 @@
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
+
+
+//消息  
 void delivered(void *context, MQTTClient_deliveryToken dt)
 {
     printf("Message with token value %d delivery confirmed\n", dt);
@@ -64,6 +67,8 @@ int main(int argc, char* argv[])
         goto exit;
     }
 
+
+    //设置  连接丢失,消息送达, 发送成功 ,回调
     if ((rc = MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered)) != MQTTCLIENT_SUCCESS)
     {
         printf("Failed to set callbacks, return code %d\n", rc);
@@ -80,6 +85,8 @@ int main(int argc, char* argv[])
         goto destroy_exit;
     }
 
+
+    //订阅 topic 
     printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
            "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
     if ((rc = MQTTClient_subscribe(client, TOPIC, QOS)) != MQTTCLIENT_SUCCESS)

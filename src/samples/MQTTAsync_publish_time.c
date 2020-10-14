@@ -44,7 +44,7 @@
 
 
 // Better not to flood a public broker. Test against localhost.
-#define ADDRESS         "tcp://localhost:1883"
+#define ADDRESS         "tcp://127.0.0.1:1883"
 
 #define CLIENTID        "ExampleClientTimePub"
 #define TOPIC           "data/time"
@@ -55,6 +55,10 @@
 volatile int finished = 0;
 volatile int connected = 0;
 
+
+//连接丢失处理
+//1.打印连接丢失原因
+//2.重新连接
 void connlost(void *context, char *cause)
 {
 	MQTTAsync client = (MQTTAsync)context;
@@ -86,6 +90,11 @@ void onDisconnect(void* context, MQTTAsync_successData* response)
 	finished = 1;
 }
 
+
+//发送失败处理
+//1.打印失败响应信息
+//2.设置断开链接处理函数
+//3 断开连接
 void onSendFailure(void* context, MQTTAsync_failureData* response)
 {
 	MQTTAsync client = (MQTTAsync)context;
