@@ -49,7 +49,6 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     return 1;
 }
 
-
 //连接丢失回调
 void connlost(void *context, char *cause)
 {
@@ -104,10 +103,33 @@ int main(int argc, char *argv[])
     {
         ch = getchar();
 
+        // 1Kb= 1024 字节
+        // 1mb = 1024kb
+        //最大理论限制   268435455字节   256MB
+        // 1 << 28-1
+        //KB = 1<<10
+        //MB = 1<<20
+        // GB = 1<<30
+        // TB = 1<<40
+        // PB = 1<<50
+
         if (ch != '\n')
         {
-            char m[1] = {ch};
+
+            char *m = NULL;
+            m = (char *)malloc(  (268435455) * sizeof(char));
+            for (int i = 0; i < (268435455); i++)
+            {
+                m[i] = ch;
+            }
+            // char m[(1 << 20) * 4];
+            // for (int i = 0; i < (1 << 20) * 4; i++)
+            // {
+            //     m[i] = ch;
+            // }
+
             pubmsg.payload = m;
+            pubmsg.payloadlen = (int)strlen(m);
             //发布消息
             if ((rc = MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
             {
