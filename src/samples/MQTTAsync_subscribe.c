@@ -29,12 +29,12 @@
 #include <OsWrapper.h>
 #endif
 
-#define ADDRESS     "tcp://127.0.0.1:1883"
-#define CLIENTID    "ExampleAsyncClientSub"
-#define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
-#define QOS         1
-#define TIMEOUT     10000L
+#define ADDRESS "tcp://127.0.0.1:1883"
+#define CLIENTID "ExampleAsyncClientSub"
+#define TOPIC "MQTT Examples"
+#define PAYLOAD "Hello World!"
+#define QOS 1
+#define TIMEOUT 10000L
 
 int disc_finished = 0;
 int subscribed = 0;
@@ -60,50 +60,47 @@ void connlost(void *context, char *cause)
 	}
 }
 
-
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
 {
-    printf("Message arrived\n");
-    printf("     topic: %s\n", topicName);
-    // printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
-    MQTTAsync_freeMessage(&message);
-    MQTTAsync_free(topicName);
-    return 1;
+	printf("Message arrived\n");
+	printf("     topic: %s\n", topicName);
+	// printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
+	MQTTAsync_freeMessage(&message);
+	MQTTAsync_free(topicName);
+	return 1;
 }
 
-void onDisconnectFailure(void* context, MQTTAsync_failureData* response)
+void onDisconnectFailure(void *context, MQTTAsync_failureData *response)
 {
 	printf("Disconnect failed, rc %d\n", response->code);
 	disc_finished = 1;
 }
 
-void onDisconnect(void* context, MQTTAsync_successData* response)
+void onDisconnect(void *context, MQTTAsync_successData *response)
 {
 	printf("Successful disconnection\n");
 	disc_finished = 1;
 }
 
-void onSubscribe(void* context, MQTTAsync_successData* response)
+void onSubscribe(void *context, MQTTAsync_successData *response)
 {
 	printf("Subscribe succeeded\n");
 	subscribed = 1;
 }
 
-void onSubscribeFailure(void* context, MQTTAsync_failureData* response)
+void onSubscribeFailure(void *context, MQTTAsync_failureData *response)
 {
 	printf("Subscribe failed, rc %d\n", response->code);
 	finished = 1;
 }
 
-
-void onConnectFailure(void* context, MQTTAsync_failureData* response)
+void onConnectFailure(void *context, MQTTAsync_failureData *response)
 {
 	printf("Connect failed, rc %d\n", response->code);
 	finished = 1;
 }
 
-
-void onConnect(void* context, MQTTAsync_successData* response)
+void onConnect(void *context, MQTTAsync_successData *response)
 {
 	MQTTAsync client = (MQTTAsync)context;
 	MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
@@ -112,7 +109,8 @@ void onConnect(void* context, MQTTAsync_successData* response)
 	printf("Successful connection\n");
 
 	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-           "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
+		   "Press Q<Enter> to quit\n\n",
+		   TOPIC, CLIENTID, QOS);
 	opts.onSuccess = onSubscribe;
 	opts.onFailure = onSubscribeFailure;
 	opts.context = client;
@@ -123,23 +121,26 @@ void onConnect(void* context, MQTTAsync_successData* response)
 	}
 }
 
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	MQTTAsync client;
+
+	//初始化连接使用到的参数
 	MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
 	MQTTAsync_disconnectOptions disc_opts = MQTTAsync_disconnectOptions_initializer;
 	int rc;
 	int ch;
 
-	if ((rc = MQTTAsync_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL))
-			!= MQTTASYNC_SUCCESS)
+	//创建一个异步的  client
+	if ((rc = MQTTAsync_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTASYNC_SUCCESS)
 	{
 		printf("Failed to create client, return code %d\n", rc);
 		rc = EXIT_FAILURE;
 		goto exit;
 	}
 
+	//设置回调函数,
+	//这里即是异步方式:   使用其他线程去接收消息,不阻塞当前线程
 	if ((rc = MQTTAsync_setCallbacks(client, client, connlost, msgarrvd, NULL)) != MQTTASYNC_SUCCESS)
 	{
 		printf("Failed to set callbacks, return code %d\n", rc);
@@ -160,20 +161,24 @@ int main(int argc, char* argv[])
 	}
 
 	while (!subscribed && !finished)
-		#if defined(_WIN32)
-			Sleep(100);
-		#else
-			usleep(10000L);
-		#endif
+#if defined(_WIN32)
+		Sleep(100);
+#else
+		usleep(10000L);
+#endif
 
 	if (finished)
 		goto exit;
 
-	do 
+    //主线程 阻塞 检查标准输入
+	do
 	{
 		ch = getchar();
-	} while (ch!='Q' && ch != 'q');
+	printf("do while循环");
+	} while (ch != 'Q' && ch != 'q');
 
+   
+    // 主动退出操作
 	disc_opts.onSuccess = onDisconnect;
 	disc_opts.onFailure = onDisconnectFailure;
 	if ((rc = MQTTAsync_disconnect(client, &disc_opts)) != MQTTASYNC_SUCCESS)
@@ -182,17 +187,18 @@ int main(int argc, char* argv[])
 		rc = EXIT_FAILURE;
 		goto destroy_exit;
 	}
- 	while (!disc_finished)
- 	{
-		#if defined(_WIN32)
-			Sleep(100);
-		#else
-			usleep(10000L);
-		#endif
- 	}
+
+	while (!disc_finished)
+	{
+#if defined(_WIN32)
+		Sleep(100);
+#else
+		usleep(10000L);
+#endif
+	}
 
 destroy_exit:
 	MQTTAsync_destroy(&client);
 exit:
- 	return rc;
+	return rc;
 }
