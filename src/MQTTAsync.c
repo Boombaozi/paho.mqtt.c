@@ -3492,6 +3492,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 		goto exit;
 	}
 
+    //检查 连接参数 结构体
 	if (strncmp(options->struct_id, "MQTC", 4) != 0 || options->struct_version < 0 || options->struct_version > 7)
 	{
 		rc = MQTTASYNC_BAD_STRUCTURE;
@@ -3579,6 +3580,9 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 
 	tostop = 0;
 
+
+   //如果不是这两个线程中的一个 , 为防止多线程执行时,有可能开启多个 send    receivce线程 ,   需要加锁
+   //如果是, 则 不会有 同时开启线程的情况,不用加锁
 	/* don't lock async mutex if we are being called from a callback */
 	thread_id = Thread_getid();
 	if (thread_id != sendThread_id && thread_id != receiveThread_id)
@@ -3586,11 +3590,16 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 		MQTTAsync_lock_mutex(mqttasync_mutex);
 		locked = 1;
 	}
+
+
+	// 开启 发送线程
 	if (sendThread_state != STARTING && sendThread_state != RUNNING)
 	{
 		sendThread_state = STARTING;
 		Thread_start(MQTTAsync_sendThread, NULL);
 	}
+
+	//开启接受线程
 	if (receiveThread_state != STARTING && receiveThread_state != RUNNING)
 	{
 		receiveThread_state = STARTING;

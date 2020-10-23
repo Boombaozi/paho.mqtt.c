@@ -2735,6 +2735,10 @@ void MQTTClient_yield(void)
 	int rc = 0;
 
 	FUNC_ENTRY;
+
+	//如果有其他线程在执行, 则此函数退出
+	// running  初始值为 0 
+	//
 	if (running) /* yield is not meant to be called in a multi-thread environment */
 	{
 		MQTTTime_sleep(timeout);
@@ -2784,8 +2788,10 @@ int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken mdt
 		rc = MQTTCLIENT_FAILURE;
 		goto exit;
 	}
-
+	//耗时
 	elapsed = MQTTTime_elapsed(start);
+
+	//当在超时时间内 
 	while (elapsed < timeout)
 	{
 		if (m->c->connected == 0)
@@ -2801,6 +2807,8 @@ int MQTTClient_waitForCompletion(MQTTClient handle, MQTTClient_deliveryToken mdt
 		Thread_unlock_mutex(mqttclient_mutex);
 		MQTTClient_yield();
 		Thread_lock_mutex(mqttclient_mutex);
+
+		//每次循环结束,  更新 耗时
 		elapsed = MQTTTime_elapsed(start);
 	}
 

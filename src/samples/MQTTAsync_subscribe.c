@@ -150,6 +150,8 @@ int main(int argc, char *argv[])
 
 	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
+
+	//通过onConnect()连接连接成功 后的订阅操作
 	conn_opts.onSuccess = onConnect;
 	conn_opts.onFailure = onConnectFailure;
 	conn_opts.context = client;
