@@ -666,25 +666,29 @@ void MQTTProtocol_keepalive(START_TIME_TYPE now)
 
 		if (client->connected == 0 || client->keepAliveInterval == 0)
 			continue;
-
+		// 如果发送了ping却没收到ping ack 
 		if (client->ping_outstanding == 1)
 		{
+			// 如果pingAck 没有在 keepalive 时间内收到，则主动断开连接 
 			if (MQTTTime_difftime(now, client->net.lastPing) >= (DIFF_TIME_TYPE)(client->keepAliveInterval * 1000))
 			{
 				Log(TRACE_PROTOCOL, -1, "PINGRESP not received in keepalive interval for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
 				MQTTProtocol_closeSession(client, 1);
 			}
 		}
+		// 如果距离上次发送ping报文超过keepAlive 则尝试重新发送
 		else if (MQTTTime_difftime(now, client->net.lastSent) >= (DIFF_TIME_TYPE)(client->keepAliveInterval * 1000) ||
 					MQTTTime_difftime(now, client->net.lastReceived) >= (DIFF_TIME_TYPE)(client->keepAliveInterval * 1000))
 		{
 			if (Socket_noPendingWrites(client->net.socket))
 			{
+				// 发送ping报文失败
 				if (MQTTPacket_send_pingreq(&client->net, client->clientID) != TCPSOCKET_COMPLETE)
 				{
 					Log(TRACE_PROTOCOL, -1, "Error sending PINGREQ for client %s on socket %d, disconnecting", client->clientID, client->net.socket);
 					MQTTProtocol_closeSession(client, 1);
 				}
+				// 发送ping报文成功
 				else
 				{
 					client->net.lastPing = now;

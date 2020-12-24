@@ -78,8 +78,13 @@ typedef struct
 typedef struct
 {
 	int socket;
+	// 最后发送报文的时间戳
+	// 任何报文发送均会重置此时间
 	START_TIME_TYPE lastSent;
+	// 最后收到报文的时间戳
+	// 收到任何一个报文包均会重置此时间
 	START_TIME_TYPE lastReceived;
+	// 最后发送的ping时间
 	START_TIME_TYPE lastPing;
 #if defined(OPENSSL)
 	SSL* ssl;
@@ -124,6 +129,8 @@ typedef struct
 	unsigned int cleanstart : 1;		/**< MQTT V5 clean start flag */
 	unsigned int connected : 1;		/**< whether it is currently connected */
 	unsigned int good : 1; 			  /**< if we have an error on the socket we turn this off */
+	// 发送ping报文后置1
+	// 接收到ping ack后置 0 ，或者断开连接后置0
 	unsigned int ping_outstanding : 1;
 	signed int connect_state : 4;
 	networkHandles net;             /**< network info for this client */

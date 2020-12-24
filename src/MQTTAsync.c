@@ -2676,7 +2676,7 @@ static thread_return_type WINAPI MQTTAsync_receiveThread(void *n)
 		int sock = -1;
 		MQTTAsyncs *m = NULL;
 		MQTTPacket *pack = NULL;
-
+	    // 解锁的原因？？？
 		MQTTAsync_unlock_mutex(mqttasync_mutex);
 		pack = MQTTAsync_cycle(&sock, timeout, &rc);
 		MQTTAsync_lock_mutex(mqttasync_mutex);
@@ -3416,10 +3416,11 @@ exit:
 
 static int retryLoopInterval = 5;
 
+// 设置轮询的间隔 1-5秒
 static void setRetryLoopInterval(int keepalive)
 {
 	int proposed = keepalive / 10;
-
+	// 如果10秒内，proposed =1
 	if (proposed < 1)
 		proposed = 1;
 	else if (proposed > 5)
@@ -3557,8 +3558,9 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions *options)
 	}
 	if (locked)
 		MQTTAsync_unlock_mutex(mqttasync_mutex);
-
+	// 给客户端， 设置keepAlive的时间
 	m->c->keepAliveInterval = options->keepAliveInterval;
+	// 设置Loop间隔  1-5秒
 	setRetryLoopInterval(options->keepAliveInterval);
 	m->c->cleansession = options->cleansession;
 	m->c->maxInflightMessages = options->maxInflight;
@@ -4304,14 +4306,20 @@ static void MQTTAsync_retry(void)
 	START_TIME_TYPE now;
 
 	FUNC_ENTRY;
+	// 获取当前时间
 	now = MQTTTime_now();
+	// 如果 now 和 last的差值 > loop周期
 	if (MQTTTime_difftime(now, last) > (DIFF_TIME_TYPE)(retryLoopInterval * 1000))
 	{
+		// 重置last时间
 		last = MQTTTime_now();
+		// 检测时间，如距离上次发送时间超过keepalive 则发送ping报文
 		MQTTProtocol_keepalive(now);
+		// 重试  当前时间,是否重试
 		MQTTProtocol_retry(now, 1, 0);
 	}
 	else
+		// 重试
 		MQTTProtocol_retry(now, 0, 0);
 	FUNC_EXIT;
 }
@@ -4507,6 +4515,7 @@ exit:
 	return rc;
 }
 
+// 循环，每次都会检测时间，来判断是否发送ping, 是否进行重试
 static MQTTPacket *MQTTAsync_cycle(int *sock, unsigned long timeout, int *rc)
 {
 	struct timeval tp = {0L, 0L};
